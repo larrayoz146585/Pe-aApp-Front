@@ -104,7 +104,7 @@ export default function CartaScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Carta de la Peña</Text>
+      <Text style={styles.title}>Bebidas en la Peña Sanduzelai </Text>
 
       <FlatList
         data={bebidas}

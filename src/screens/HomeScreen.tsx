@@ -23,7 +23,7 @@ export default function HomeScreen() {
 
       {/* Tarjeta de Saldo */}
       <View style={styles.card}>
-        <Text style={styles.saldoTitle}>Tu Saldo Actual</Text>
+        <Text style={styles.saldoTitle}>Tu Saldo Actual </Text>
         
         {/* VAMOS A IMPRIMIRLO SIN FILTROS PARA VER QUÉ PASA */}
         <Text style={[styles.saldo, { color: 'blue' }]}>
@@ -35,14 +35,14 @@ export default function HomeScreen() {
         style={styles.bigButton} 
         onPress={() => router.push('/carta')}
       >
-        <Text style={styles.bigButtonText}>🍺 NUEVA RONDA</Text>
+        <Text style={styles.bigButtonText}>🍺 PEDIR A MI SOCIO</Text>
       </TouchableOpacity>
       {/* BOTÓN SOLO PARA EL BARMAN (O si quieres probarlo tú) */}
       <TouchableOpacity 
         style={styles.adminButton} 
         onPress={() => router.push('/comanda')}
       >
-        <Text style={styles.adminButtonText}>👨‍🍳 VER COMANDAS</Text>
+        <Text style={styles.adminButtonText}>👨‍🍳 VER PEDIDOS(Solo socios)</Text>
       </TouchableOpacity>
       {/* BOTÓN DE ESTADÍSTICAS (Solo Admin) */}
       <TouchableOpacity 
@@ -53,7 +53,7 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-        <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        <Text style={styles.logoutText}>Cerrar Sesión </Text>
       </TouchableOpacity>
     </View>
   );

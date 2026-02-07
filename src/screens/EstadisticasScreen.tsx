@@ -54,7 +54,7 @@ export default function EstadisticasScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📈 Libro de Cuentas</Text>
+      <Text style={styles.title}>Pedidos y cuenta final</Text>
 
       <ScrollView 
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -79,47 +79,35 @@ export default function EstadisticasScreen() {
             </View>
         </View>
 
-        {/* SECCIÓN B: HISTORIAL DE PEDIDOS */}
+        {/* SECCIÓN B: CUENTAS POR CLIENTE */}
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📜 Historial de Salidas</Text>
+            <Text style={styles.sectionTitle}>🧾 Cuentas por Persona</Text>
             
-            {data?.historial.map((pedido: any) => (
-                <View key={pedido.id} style={styles.card}>
+            {data?.historial.map((cliente: any) => (
+                <View key={cliente.id} style={styles.card}>
                     
-                    {/* Cabecera de la tarjeta: Quién y Cuándo */}
+                    {/* Cabecera: Nombre y Total */}
                     <View style={styles.cardHeader}>
-                        <View>
-                            <Text style={styles.user}>👤 Cliente: {pedido.user.name}</Text>
-                            
-                            {/* AQUÍ SE MUESTRA EL CAMARERO (Si existe) */}
-                            {pedido.camarero ? (
-                                <Text style={styles.camarero}>👮‍♂️ Servido por: {pedido.camarero.name}</Text>
-                            ) : (
-                                <Text style={styles.camareroPending}>⏳ (Servido antes de actualizar)</Text>
-                            )}
-                        </View>
-                        
-                        <Text style={styles.date}>
-                            {new Date(pedido.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </Text>
+                        <Text style={styles.user}>👤 {cliente.nombre}</Text>
+                        <Text style={styles.totalPrice}>{cliente.total_gastado} €</Text>
                     </View>
 
-                    {/* Lista de lo que pidieron */}
+                    {/* Lista Agrupada de Bebidas */}
                     <View style={styles.detailsContainer}>
-                        {pedido.detalles.map((d: any, i: number) => (
-                            <Text key={i} style={styles.detail}>
-                                • {d.cantidad} x {d.bebida.nombre}
+                        <Text style={{fontSize: 12, color: '#999', marginBottom: 5}}>Ha consumido:</Text>
+                        {/* Truco para recorrer el objeto de bebidas: */}
+                        {Object.entries(cliente.bebidas).map(([nombreBebida, cantidad]: any, index) => (
+                            <Text key={index} style={styles.detail}>
+                                • {cantidad} x {nombreBebida}
                             </Text>
                         ))}
                     </View>
 
-                    {/* Total pagado */}
-                    <Text style={styles.totalPrice}>Total cobrado: {pedido.total} €</Text>
                 </View>
             ))}
 
             {(!data?.historial || data?.historial.length === 0) && (
-                <Text style={{textAlign:'center', color:'#999', marginTop: 20}}>No hay movimientos recientes</Text>
+                <Text style={styles.emptyText}>No has servido nada a nadie... todavía.</Text>
             )}
         </View>
 
@@ -167,5 +155,27 @@ const styles = StyleSheet.create({
 
   // BOTÓN ROJO
   dangerButton: { backgroundColor: '#ff3b30', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 10, marginBottom: 50, shadowColor: "#ff3b30", shadowOpacity: 0.3, shadowRadius: 5, elevation: 5 },
-  dangerText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  dangerText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  // ... tus otros estilos ...
+
+  // AÑADE ESTOS NUEVOS PARA EL PRECIO GRANDE
+  priceContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    backgroundColor: '#f0f9f4', // Un fondo verde muy clarito
+    padding: 10,
+    borderRadius: 8,
+    minWidth: 80
+  },
+  totalLabel: {
+    fontSize: 10,
+    color: '#34C759',
+    fontWeight: 'bold',
+    textTransform: 'uppercase'
+  },
+  bigPrice: {
+    fontSize: 22, // ¡Bien grande!
+    fontWeight: 'bold',
+    color: '#34C759' // Verde dinero
+  },
 });

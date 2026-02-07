@@ -49,7 +49,7 @@ export default function ComandaScreen() {
 
       {pedidos.length === 0 ? (
         <View style={styles.center}>
-            <Text style={styles.emptyText}>¡Todo servido! 🎉</Text>
+            <Text style={styles.emptyText}>¡No hay nada nuevo para servir!</Text>
         </View>
       ) : (
         <FlatList
