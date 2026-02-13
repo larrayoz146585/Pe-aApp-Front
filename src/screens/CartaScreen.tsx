@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import api from '../api';
 import { AuthContext } from '../context/AuthContext';
-
+import { showAlert } from '../utils/alertHelper';
 interface Bebida {
   id: number;
   nombre: string;
@@ -18,8 +18,8 @@ interface ItemCarrito {
 
 export default function CartaScreen() {
   const router = useRouter();
-  const { userInfo } = useContext(AuthContext); 
-  
+  const { userInfo } = useContext(AuthContext);
+
   const [bebidas, setBebidas] = useState<Bebida[]>([]);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function CartaScreen() {
         setLoading(false);
       })
       .catch(error => {
-        Alert.alert('Error', 'No se ha podido cargar la carta');
+        showAlert('Error', 'No se ha podido cargar la carta');
         setLoading(false);
       });
   }, []);
@@ -41,7 +41,7 @@ export default function CartaScreen() {
     setCarrito(prev => {
       const existe = prev.find(item => item.bebida.id === bebida.id);
       if (existe) {
-        return prev.map(item => 
+        return prev.map(item =>
           item.bebida.id === bebida.id ? { ...item, cantidad: item.cantidad + 1 } : item
         );
       }
@@ -53,7 +53,7 @@ export default function CartaScreen() {
     setCarrito(prev => {
       const existe = prev.find(item => item.bebida.id === bebida.id);
       if (existe && existe.cantidad > 1) {
-        return prev.map(item => 
+        return prev.map(item =>
           item.bebida.id === bebida.id ? { ...item, cantidad: item.cantidad - 1 } : item
         );
       }
@@ -76,31 +76,33 @@ export default function CartaScreen() {
 
       // ENVIAMOS 'items' AL SERVIDOR
       await api.post('/pedidos', {
-        items: items 
+        items: items
       });
 
-      Alert.alert('¡Oído Cocina! 🍻', 'Tu pedido se ha enviado.', [
-        { text: 'OK', onPress: () => router.back() } 
-      ]);
+      showAlert(
+        '¡Oído Cocina! 🍻',
+        'Tu pedido se ha enviado.',
+        () => router.back()
+      );
       setCarrito([]);
 
     } catch (error: any) {
-        // --- CÓDIGO DE DEBUG (CHIVATO) ---
-        console.log("Error completo:", error);
-        
-        const respuestaServidor = error.response?.data;
-        
-        // Si el servidor nos manda un mensaje explicativo, lo mostramos
-        const mensajeError = JSON.stringify(respuestaServidor) || error.message;
+      // --- CÓDIGO DE DEBUG (CHIVATO) ---
+      console.log("Error completo:", error);
 
-        Alert.alert('Detectado Error 🛑', mensajeError);
-        // ---------------------------------
+      const respuestaServidor = error.response?.data;
+
+      // Si el servidor nos manda un mensaje explicativo, lo mostramos
+      const mensajeError = JSON.stringify(respuestaServidor) || error.message;
+
+      showAlert('Detectado Error 🛑', mensajeError);
+      // ---------------------------------
     } finally {
       setEnviando(false);
     }
   };
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#007AFF"/></View>;
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#007AFF" /></View>;
 
   return (
     <View style={styles.container}>
@@ -116,7 +118,7 @@ export default function CartaScreen() {
 
           return (
             <View style={styles.card}>
-              <View style={{flex: 1}}>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.bebidaNombre}>{item.nombre}</Text>
                 <Text style={styles.bebidaPrecio}>{item.precio} €</Text>
               </View>
@@ -127,7 +129,7 @@ export default function CartaScreen() {
                     <Text style={styles.btnText}>-</Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {cantidad > 0 && <Text style={styles.cantidad}>{cantidad}</Text>}
 
                 <TouchableOpacity onPress={() => agregarBebida(item)} style={[styles.btn, styles.btnPlus]}>
@@ -142,12 +144,12 @@ export default function CartaScreen() {
       {total > 0 && (
         <View style={styles.footer}>
           <Text style={styles.totalText}>Total: {total.toFixed(2)} €</Text>
-          <TouchableOpacity 
-            style={styles.pedirBtn} 
+          <TouchableOpacity
+            style={styles.pedirBtn}
             onPress={confirmarPedido}
             disabled={enviando}
           >
-            {enviando ? <ActivityIndicator color="#fff"/> : <Text style={styles.pedirText}>CONFIRMAR</Text>}
+            {enviando ? <ActivityIndicator color="#fff" /> : <Text style={styles.pedirText}>CONFIRMAR</Text>}
           </TouchableOpacity>
         </View>
       )}
