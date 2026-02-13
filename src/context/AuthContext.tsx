@@ -16,16 +16,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkLoginStatus = async () => {
     try {
-      const token = await SecureStore.getItemAsync('user_token');
-      const user = await SecureStore.getItemAsync('user_info');
+      const token = await getStorage('user_token');
+      const user = await getStorage('user_info');
       
       if (token && user) {
-        setUserToken(token);
-        setUserInfo(JSON.parse(user));
+        // 1. Antes de nada, le damos el token a Axios para probarlo
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        try {
+            // 2. Hacemos una prueba rápida al servidor (endpoint /me o cualquiera protegido)
+            // Si el servidor dice "401" (token malo), esto fallará y saltará al catch de abajo.
+            await api.get('/me'); 
+            
+            // 3. SI LLEGAMOS AQUÍ, el token es bueno. ¡Adentro!
+            setUserToken(token);
+            setUserInfo(JSON.parse(user));
+            
+        } catch (apiError) {
+            console.log("🧟 Token Zombie detectado (Antiguo o Inválido). Borrando...");
+            // El token no vale, así que lo matamos para que no vuelva a entrar
+            await removeStorage('user_token');
+            await removeStorage('user_info');
+            setUserToken(null);
+            setUserInfo(null);
+        }
       }
     } catch (e) {
-      console.log('Error recuperando sesión', e);
+      console.log('Error general recuperando sesión', e);
     }
+    // Terminamos de cargar (sea login exitoso o fallido)
     setIsLoading(false);
   };
 
