@@ -1,18 +1,18 @@
 import React, { useContext, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-
+import { showAlert } from '../utils/alertHelper';
 export default function LoginScreen() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  
+
   const { login, register } = useContext(AuthContext);
 
   const handleSubmit = async () => {
     if (!name || !password) {
-      Alert.alert('Faltan datos', 'Pon tu nombre y una contraseña');
+      showAlert('Faltan datos', 'Pon tu nombre y una contraseña');
       return;
     }
 
@@ -20,15 +20,15 @@ export default function LoginScreen() {
     try {
       if (isRegistering) {
         await register(name, password);
-        Alert.alert('¡Bienvenido!', 'Usuario creado correctamente.');
+        showAlert('¡Bienvenido!', 'Usuario creado correctamente.');
       } else {
         await login(name, password);
       }
     } catch (error) {
-        const mensaje = isRegistering 
-            ? 'Ese nombre ya existe, prueba otro.' 
-            : 'Nombre o contraseña incorrectos.';
-        Alert.alert('Error', mensaje);
+      const mensaje = isRegistering
+        ? 'Ese nombre ya existe, prueba otro.'
+        : 'Nombre o contraseña incorrectos.';
+      showAlert('Error', mensaje);
     } finally {
       setLoading(false);
     }
