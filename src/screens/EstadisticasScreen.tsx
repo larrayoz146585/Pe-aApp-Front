@@ -1,11 +1,14 @@
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import api from '../api';
+import { AuthContext } from '../context/AuthContext';
 import { showAlert, showConfirm } from '../utils/alertHelper';
 export default function EstadisticasScreen() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // Sacamos la función para refrescar el usuario del contexto
+  const { refreshUser } = useContext(AuthContext);
 
   // 1. CARGAR DATOS DEL SERVIDOR
   const cargarDatos = async () => {
@@ -36,12 +39,13 @@ export default function EstadisticasScreen() {
         try {
           await api.delete('/admin/reset-pedidos');
 
+          // Refrescamos tanto las estadísticas como el saldo del usuario actual
+          await Promise.all([cargarDatos(), refreshUser()]);
+
           // Aviso de éxito
           showAlert(
             '🧹 Limpieza completada',
-            'Se ha borrado todo el historial.',
-            () => cargarDatos() // Recargamos la pantalla cuando el usuario cierre la alerta
-          );
+            'Se ha borrado todo el historial y los saldos se han reiniciado a 0.');
 
         } catch (error) {
           // Aviso de error

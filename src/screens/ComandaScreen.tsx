@@ -1,19 +1,19 @@
 // src/screens/ComandaScreen.tsx
 
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import api from '../api';
+import { AuthContext } from '../context/AuthContext';
 import { showAlert } from '../utils/alertHelper';
 
 // 👇👇👇 ¡IMPORTANTE! TIENE QUE DECIR 'export default' 👇👇👇
 export default function ComandaScreen() {
   const [pedidos, setPedidos] = useState<any[]>([]);
 
-  // ... (el resto del código que te pasé antes) ...
-  // Si quieres te lo vuelvo a pegar entero abajo para asegurar.
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { refreshUser } = useContext(AuthContext);
 
   const cargarComandas = async () => {
     setLoading(true);
@@ -36,7 +36,12 @@ export default function ComandaScreen() {
   const marcarServido = async (idPedido: number) => {
     try {
       await api.put(`/pedidos/${idPedido}/servir`);
-      cargarComandas();
+      // Usamos Promise.all para lanzar ambas actualizaciones en paralelo y
+      // asegurarnos de que la interfaz esté lo más sincronizada posible.
+      await Promise.all([
+        cargarComandas(), // Recarga la lista de comandas pendientes
+        refreshUser()     // Recarga la información del usuario actual (el barman)
+      ]);
     } catch (error) {
       showAlert('Error', 'No se pudo marcar como servido');
     }
