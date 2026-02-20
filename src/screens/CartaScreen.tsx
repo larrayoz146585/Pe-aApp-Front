@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import { showAlert } from '../utils/alertHelper';
@@ -16,11 +16,16 @@ interface ItemCarrito {
   cantidad: number;
 }
 
+interface SeccionBebidas {
+  title: string;
+  data: Bebida[];
+}
+
 export default function CartaScreen() {
   const router = useRouter();
   const { userInfo } = useContext(AuthContext);
 
-  const [bebidas, setBebidas] = useState<Bebida[]>([]);
+  const [secciones, setSecciones] = useState<SeccionBebidas[]>([]);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -28,7 +33,13 @@ export default function CartaScreen() {
   useEffect(() => {
     api.get('/bebidas')
       .then(response => {
-        setBebidas(response.data);
+        const bebidasAgrupadas = response.data; // { Categoria1: [bebida1], ... }
+        // Convertimos el objeto en un array para el SectionList
+        const arraySecciones = Object.keys(bebidasAgrupadas).map(categoria => ({
+          title: categoria,
+          data: bebidasAgrupadas[categoria]
+        }));
+        setSecciones(arraySecciones);
         setLoading(false);
       })
       .catch(error => {
@@ -108,9 +119,10 @@ export default function CartaScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Bebidas en la Peña Sanduzelai </Text>
 
-      <FlatList
-        data={bebidas}
+      <SectionList
+        sections={secciones}
         keyExtractor={(item) => item.id.toString()}
+        renderSectionHeader={({ section: { title } }) => <Text style={styles.sectionHeader}>{title}</Text>}
         contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item }) => {
           const enCarrito = carrito.find(c => c.bebida.id === item.id);
@@ -161,6 +173,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: { flex: 1, backgroundColor: '#f5f5f5', paddingTop: 50, paddingHorizontal: 20 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  sectionHeader: { fontSize: 22, fontWeight: 'bold', backgroundColor: '#f5f5f5', paddingVertical: 10, marginTop: 15, color: '#333' },
   card: { backgroundColor: 'white', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: "#000", shadowOpacity: 0.05, elevation: 2 },
   bebidaNombre: { fontSize: 18, fontWeight: '600' },
   bebidaPrecio: { fontSize: 16, color: '#666' },
