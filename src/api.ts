@@ -2,7 +2,8 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const API_URL = 'https://pena-app-back.onrender.com/api'; 
+//const API_URL = 'https://pena-app-back.onrender.com/api'; 
+const API_URL = 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -23,12 +24,12 @@ api.interceptors.request.use(async (config) => {
     // WEB: Leemos del localStorage
     token = localStorage.getItem('user_token');
     console.log("🔍 Token en LocalStorage (user_token):", token);
-    
+
     // Si sale null, probamos con el otro nombre por si acaso
     if (!token) {
-        const tokenAlternativo = localStorage.getItem('userToken');
-        console.log("🔍 ¿Quizás estaba como 'userToken'?:", tokenAlternativo);
-        if (tokenAlternativo) token = tokenAlternativo;
+      const tokenAlternativo = localStorage.getItem('userToken');
+      console.log("🔍 ¿Quizás estaba como 'userToken'?:", tokenAlternativo);
+      if (tokenAlternativo) token = tokenAlternativo;
     }
 
   } else {

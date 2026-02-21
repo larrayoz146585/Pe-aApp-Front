@@ -1,11 +1,12 @@
 import { useFocusEffect, useRouter } from 'expo-router'; // Importamos useFocusEffect
-import React, { useCallback, useContext } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useContext, useState } from 'react';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 
 export default function HomeScreen() {
   // Sacamos también la función refreshUser del contexto
-  const { userInfo, logout, refreshUser } = useContext(AuthContext); 
+  const { userInfo, logout, refreshUser } = useContext(AuthContext);
+  const [adminMenuVisible, setAdminMenuVisible] = useState(false);
   const router = useRouter();
 
   // ESTO ES LA MAGIA: 
@@ -18,43 +19,94 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* BOTÓN DE ICONO DE MENÚ (Solo Admins) */}
+      {userInfo?.role === 'superadmin' && (
+        <TouchableOpacity
+          style={styles.menuIcon}
+          onPress={() => setAdminMenuVisible(true)}
+        >
+          <Text style={styles.menuIconText}>☰</Text>
+        </TouchableOpacity>
+      )}
+
       <Text style={styles.emoji}>🍻</Text>
       <Text style={styles.greeting}>¡Aupa, {userInfo?.name}!</Text>
 
       {/* Tarjeta de Saldo */}
       <View style={styles.card}>
         <Text style={styles.saldoTitle}>Tu Saldo Actual </Text>
-        
+
         {/* VAMOS A IMPRIMIRLO SIN FILTROS PARA VER QUÉ PASA */}
         <Text style={[styles.saldo, { color: 'blue' }]}>
-           {userInfo?.saldo} €
+          {userInfo?.saldo} €
         </Text>
       </View>
 
-      <TouchableOpacity 
-        style={styles.bigButton} 
+      <TouchableOpacity
+        style={styles.bigButton}
         onPress={() => router.push('/carta')}
       >
         <Text style={styles.bigButtonText}>🍺 PEDIR A MI SOCIO</Text>
       </TouchableOpacity>
-      {/* BOTÓN SOLO PARA EL BARMAN (O si quieres probarlo tú) */}
-      <TouchableOpacity 
-        style={styles.adminButton} 
-        onPress={() => router.push('/comanda')}
-      >
-        <Text style={styles.adminButtonText}>👨‍🍳 VER PEDIDOS(Solo socios)</Text>
-      </TouchableOpacity>
-      {/* BOTÓN DE ESTADÍSTICAS (Solo Admin) */}
-      <TouchableOpacity 
-        style={[styles.adminButton, { backgroundColor: '#5856D6', marginTop: 10 }]} 
-        onPress={() => router.push('/estadisticas')}
-      >
-        <Text style={styles.adminButtonText}>📈 VER ESTADÍSTICAS</Text>
-      </TouchableOpacity>
+
+      {/* BOTONES DE ACCIONES DE ADMIN */}
+      {userInfo?.role !== 'cliente' && (
+        <>
+          <TouchableOpacity
+            style={styles.adminButton}
+            onPress={() => router.push('/comanda')}
+          >
+            <Text style={styles.adminButtonText}>👨‍🍳 VER PEDIDOS</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.adminButton, { backgroundColor: '#5856D6' }]}
+            onPress={() => router.push('/estadisticas')}
+          >
+            <Text style={styles.adminButtonText}>📈 VER ESTADÍSTICAS</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       <TouchableOpacity style={styles.logoutButton} onPress={logout}>
         <Text style={styles.logoutText}>Cerrar Sesión </Text>
       </TouchableOpacity>
+
+      {/* --- MODAL DEL MENÚ DE ADMINISTRACIÓN --- */}
+      {userInfo?.role === 'superadmin' && (
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={adminMenuVisible}
+          onRequestClose={() => setAdminMenuVisible(false)}
+        >
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setAdminMenuVisible(false)}>
+            <View style={styles.menuContainer}>
+              <Text style={styles.menuTitle}>Opciones de Admin</Text>
+
+              {userInfo?.role === 'superadmin' && (
+                <>
+                  <TouchableOpacity style={styles.menuButton} onPress={() => { setAdminMenuVisible(false); router.push('/gestion-usuarios'); }}>
+                    <Text style={styles.menuButtonText}>👥 Gestionar Usuarios</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.menuButton, { backgroundColor: '#17a2b8' }]} onPress={() => { setAdminMenuVisible(false); router.push('/gestion-bebidas'); }}>
+                    <Text style={styles.menuButtonText}>🍹 Gestionar Bebidas</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+
+
+              {/* Botón para cerrar el menú */}
+              <TouchableOpacity
+                style={[styles.menuButton, { backgroundColor: '#6c757d', marginTop: 20 }]}
+                onPress={() => setAdminMenuVisible(false)}
+              >
+                <Text style={styles.menuButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -70,6 +122,25 @@ const styles = StyleSheet.create({
   bigButtonText: { color: 'white', fontSize: 22, fontWeight: 'bold' },
   logoutButton: { padding: 10 },
   logoutText: { color: 'red', fontSize: 16 },
-  adminButton: { backgroundColor: '#333', width: '100%', padding: 15, borderRadius: 15, alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#555' },
-  adminButtonText: { color: '#ddd', fontSize: 18, fontWeight: 'bold' },
+  adminButton: { backgroundColor: '#FF9500', width: '100%', padding: 15, borderRadius: 15, alignItems: 'center', marginBottom: 10 },
+  adminButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+
+  // Icono de menú hamburguesa
+  menuIcon: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  menuIconText: {
+    fontSize: 30,
+    color: '#333',
+  },
+  // Estilos para el Modal y Menú
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  menuContainer: { backgroundColor: 'white', borderRadius: 20, padding: 25, width: '85%', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  menuTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#333' },
+  menuButton: { backgroundColor: '#007AFF', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginBottom: 10 },
+  menuButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
 });
