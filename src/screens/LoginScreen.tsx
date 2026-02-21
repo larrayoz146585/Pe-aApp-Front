@@ -24,11 +24,13 @@ export default function LoginScreen() {
       } else {
         await login(name, password);
       }
-    } catch (error) {
-      const mensaje = isRegistering
-        ? 'Ese nombre ya existe, prueba otro.'
-        : 'Nombre o contraseña incorrectos.';
-      showAlert('Error', mensaje);
+    } catch (error: any) {
+      console.log("Error completo:", error); // Para verlo en la terminal de Expo
+
+      // Intentamos sacar el error exacto que manda Laravel o el error de red
+      const errorDelServidor = error.response?.data?.message || error.message;
+
+      showAlert('Error Real 🛑', errorDelServidor);
     } finally {
       setLoading(false);
     }
