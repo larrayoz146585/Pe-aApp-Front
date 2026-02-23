@@ -26,11 +26,7 @@ export default function GestionBebidasScreen() {
     const cargarBebidas = async () => {
         setLoading(true);
         try {
-            // CORRECCIÓN: Usamos la ruta de admin para obtener TODAS las bebidas (activas e inactivas).
-            // La ruta '/bebidas' es para clientes y devuelve datos agrupados que no sirven para esta lista.
-            // Asegúrate de que tu API tiene un endpoint GET en '/admin/bebidas'.
             const response = await api.get('/admin/bebidas');
-            // CORRECCIÓN: Nos aseguramos de que el precio sea un número, no un string.
             const bebidasCorregidas = response.data.map((bebida: any) => ({
                 ...bebida,
                 precio: parseFloat(bebida.precio)
@@ -100,6 +96,22 @@ export default function GestionBebidasScreen() {
         );
     };
 
+    const handleEliminar = (bebida: Bebida) => {
+        showConfirm(
+            `🗑️ Eliminar "${bebida.nombre}"`,
+            'Esta acción es permanente y no se puede deshacer. ¿Estás seguro?',
+            async () => {
+                try {
+                    await api.delete(`/admin/bebidas/${bebida.id}/delete`);
+                    showAlert('✅ Eliminada', `"${bebida.nombre}" ha sido eliminada de la carta.`);
+                    cargarBebidas();
+                } catch (error: any) {
+                    showAlert('Error', error.response?.data?.message || 'No se pudo eliminar la bebida.');
+                }
+            }
+        );
+    };
+
     if (loading && bebidas.length === 0) {
         return <View style={styles.center}><ActivityIndicator size="large" color="#007AFF" /></View>;
     }
@@ -131,6 +143,9 @@ export default function GestionBebidasScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.toggleButton} onPress={() => handleToggleActive(item)}>
                                 <Text style={styles.buttonText}>{item.is_active ? 'Desactivar' : 'Activar'}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.deleteButton} onPress={() => handleEliminar(item)}>
+                                <Text style={styles.buttonText}>🗑️ Eliminar</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -185,14 +200,13 @@ const styles = StyleSheet.create({
     bebidaNombre: { fontSize: 18, fontWeight: 'bold' },
     bebidaCategoria: { fontSize: 14, color: '#666', fontStyle: 'italic' },
     bebidaPrecio: { fontSize: 16, color: '#007AFF', fontWeight: '600', marginTop: 4 },
-    actionsContainer: { alignItems: 'flex-end' },
-    statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, marginBottom: 8 },
+    actionsContainer: { alignItems: 'flex-end', gap: 6 },
+    statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
     statusText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
-    editButton: { backgroundColor: '#ffc107', padding: 8, borderRadius: 6, marginBottom: 6, minWidth: 90, alignItems: 'center' },
+    editButton: { backgroundColor: '#ffc107', padding: 8, borderRadius: 6, minWidth: 90, alignItems: 'center' },
     toggleButton: { backgroundColor: '#17a2b8', padding: 8, borderRadius: 6, minWidth: 90, alignItems: 'center' },
+    deleteButton: { backgroundColor: '#dc3545', padding: 8, borderRadius: 6, minWidth: 90, alignItems: 'center' },
     buttonText: { color: 'white', fontWeight: 'bold' },
-
-    // Modal Styles
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
     modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 15, padding: 20 },
     modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
