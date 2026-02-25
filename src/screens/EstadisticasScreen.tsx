@@ -1,12 +1,62 @@
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useContext, useState } from 'react';
 import {
-  ActivityIndicator, RefreshControl, ScrollView,
-  StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import { showAlert, showConfirm } from '../utils/alertHelper';
+
+// ─── M3 tokens ────────────────────────────────────────────────────────────────
+const M3 = {
+  primary: '#2D6A1F',
+  onPrimary: '#FFFFFF',
+  primaryContainer: '#B7F397',
+  onPrimaryContainer: '#042100',
+
+  secondaryContainer: '#BFE0B0',
+  onSecondaryContainer: '#131F0D',
+
+  tertiaryContainer: '#BCEBEB',
+  onTertiaryContainer: '#002020',
+
+  error: '#BA1A1A',
+  onError: '#FFFFFF',
+  errorContainer: '#FFDAD6',
+  onErrorContainer: '#410002',
+
+  surface: '#F5F7EF',
+  surfaceVariant: '#DFE4D7',
+  onSurface: '#191D16',
+  onSurfaceVariant: '#434940',
+  outline: '#737970',
+  outlineVariant: '#C3C8BB',
+  background: '#F0F2EA',
+
+  gold: '#FFF0C2',
+  onGold: '#3A2800',
+  goldAccent: '#E6A800',
+
+  shapeXXL: 50,
+  shapeXL: 36,
+  shapeL: 28,
+  shapeM: 16,
+  shapeS: 12,
+};
+
+// ─── Medal colors ─────────────────────────────────────────────────────────────
+const MEDALS = [
+  { bg: '#FFF0C2', text: '#7A5200', border: '#E6A800', emoji: '🥇' },
+  { bg: '#F0F0F0', text: '#444', border: '#AAA', emoji: '🥈' },
+  { bg: '#FFE8D6', text: '#7A3200', border: '#CD7F32', emoji: '🥉' },
+];
 
 export default function EstadisticasScreen() {
   const [data, setData] = useState<any>(null);
@@ -21,7 +71,7 @@ export default function EstadisticasScreen() {
       const response = await api.get('/admin/estadisticas');
       setData(response.data);
     } catch (e: any) {
-      setError(e.response?.data?.message || 'No se pudieron cargar los datos. Comprueba tu conexión.');
+      setError(e.response?.data?.message || 'No se pudieron cargar los datos.');
     } finally {
       setLoading(false);
     }
@@ -45,118 +95,354 @@ export default function EstadisticasScreen() {
     );
   };
 
-  if (loading && !data) return <View style={styles.center}><ActivityIndicator size="large" color="#007AFF" /></View>;
+  // ── Loading ──
+  if (loading && !data) return (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={M3.primary} />
+      <Text style={styles.loadingText}>Cargando estadísticas...</Text>
+    </View>
+  );
 
-  // Pantalla de error con botón reintentar
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorEmoji}>😕</Text>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={cargarDatos}>
-          <Text style={styles.retryText}>Reintentar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // ── Error ──
+  if (error) return (
+    <View style={styles.center}>
+      <Text style={styles.errorEmoji}>😕</Text>
+      <Text style={styles.errorTitle}>Algo fue mal</Text>
+      <Text style={styles.errorMsg}>{error}</Text>
+      <TouchableOpacity style={styles.retryBtn} onPress={cargarDatos} activeOpacity={0.8}>
+        <Text style={styles.retryText}>Reintentar</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const maxVendido = data?.resumen?.[0]?.total_vendido ?? 1;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Pedidos y cuenta final</Text>
+    <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor={M3.background} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Estadísticas 📈</Text>
+        <Text style={styles.headerSubtitle}>Resumen de ventas</Text>
+      </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={cargarDatos} />}
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={cargarDatos}
+            tintColor={M3.primary}
+            colors={[M3.primary]}
+          />
+        }
+        showsVerticalScrollIndicator={false}
       >
-        {/* SECCIÓN A: RANKING DE BEBIDAS */}
-        <View style={styles.section}>
+
+        {/* ── RANKING ── */}
+        <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🏆 Ranking de Bebidas</Text>
-          <View style={styles.table}>
-            {data?.resumen.map((item: any, index: number) => (
-              <View key={index} style={styles.row}>
-                <Text style={styles.rowName}>{index + 1}. {item.nombre}</Text>
-                <Text style={styles.rowValue}>{item.total_vendido} uds.</Text>
-              </View>
-            ))}
-            {(!data?.resumen || data?.resumen.length === 0) && (
-              <Text style={styles.emptyText}>Nada servido aún 🤷‍♂️</Text>
-            )}
+        </View>
+
+        {(!data?.resumen || data.resumen.length === 0) ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyEmoji}>🍺</Text>
+            <Text style={styles.emptyText}>Nada servido aún</Text>
           </View>
-        </View>
+        ) : (
+          <View style={styles.rankingCard}>
+            {data.resumen.map((item: any, index: number) => {
+              const medal = MEDALS[index] ?? null;
+              const barWidth = Math.max(8, (item.total_vendido / maxVendido) * 100);
+              return (
+                <View key={index} style={[styles.rankRow, index < data.resumen.length - 1 && styles.rankRowBorder]}>
+                  <View style={styles.rankLeft}>
+                    {medal ? (
+                      <View style={[styles.medalBadge, { backgroundColor: medal.bg, borderColor: medal.border }]}>
+                        <Text style={styles.medalEmoji}>{medal.emoji}</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.rankNumBadge}>
+                        <Text style={styles.rankNum}>{index + 1}</Text>
+                      </View>
+                    )}
+                    <View style={styles.rankInfo}>
+                      <Text style={styles.rankName}>{item.nombre}</Text>
+                      {/* Progress bar */}
+                      <View style={styles.barTrack}>
+                        <View style={[styles.barFill, { width: `${barWidth}%` as any }]} />
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.rankUdsBadge}>
+                    <Text style={styles.rankUds}>{item.total_vendido}</Text>
+                    <Text style={styles.rankUdsLabel}>uds</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
-        {/* SECCIÓN B: CUENTAS POR CLIENTE */}
-        <View style={styles.section}>
+        {/* ── CUENTAS ── */}
+        <View style={[styles.sectionHeader, { marginTop: 28 }]}>
           <Text style={styles.sectionTitle}>🧾 Cuentas por Persona</Text>
-
-          {data?.historial.map((cliente: any) => (
-            <View key={cliente.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.user}>👤 {cliente.nombre}</Text>
-                <Text style={styles.totalPrice}>{cliente.total_gastado} €</Text>
-              </View>
-              <View style={styles.detailsContainer}>
-                <Text style={{ fontSize: 12, color: '#999', marginBottom: 5 }}>Ha consumido:</Text>
-                {Object.entries(cliente.bebidas).map(([nombreBebida, cantidad]: any, index) => (
-                  <Text key={index} style={styles.detail}>• {cantidad} x {nombreBebida}</Text>
-                ))}
-              </View>
-            </View>
-          ))}
-
-          {(!data?.historial || data?.historial.length === 0) && (
-            <Text style={styles.emptyText}>No has servido nada a nadie... todavía.</Text>
-          )}
         </View>
 
-        {/* SECCIÓN C: BOTÓN DEL PÁNICO */}
+        {(!data?.historial || data.historial.length === 0) ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyEmoji}>👤</Text>
+            <Text style={styles.emptyText}>No hay consumos registrados</Text>
+          </View>
+        ) : (
+          data.historial.map((cliente: any) => {
+            const gasto = parseFloat(String(cliente.total_gastado));
+            const gastoBg = gasto > 0 ? M3.errorContainer : M3.primaryContainer;
+            const gastoColor = gasto > 0 ? M3.error : M3.primary;
+            return (
+              <View key={cliente.id} style={styles.clienteCard}>
+                {/* Card header */}
+                <View style={styles.clienteHeader}>
+                  <View style={styles.clienteAvatarRow}>
+                    <View style={styles.clienteAvatar}>
+                      <Text style={styles.clienteAvatarText}>
+                        {cliente.nombre.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={styles.clienteNombre}>{cliente.nombre}</Text>
+                  </View>
+                  <View style={[styles.gastoBadge, { backgroundColor: gastoBg }]}>
+                    <Text style={[styles.gastoText, { color: gastoColor }]}>
+                      {gasto >= 0 ? '+' : ''}{gasto.toFixed(2)} €
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Divider */}
+                <View style={styles.clienteDivider} />
+
+                {/* Consumos */}
+                <Text style={styles.consumidoLabel}>Ha consumido</Text>
+                <View style={styles.consumosList}>
+                  {Object.entries(cliente.bebidas).map(([nombreBebida, cantidad]: any, i) => (
+                    <View key={i} style={styles.consumoChip}>
+                      <Text style={styles.consumoCantidad}>{cantidad}×</Text>
+                      <Text style={styles.consumoNombre}>{nombreBebida}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })
+        )}
+
+        {/* ── BOTÓN DEL PÁNICO ── */}
         {data?.historial?.length > 0 && (
-          <TouchableOpacity style={styles.dangerButton} onPress={borrarHistorial}>
-            <Text style={styles.dangerText}>🗑️ BORRAR TODOS LOS PEDIDOS</Text>
+          <TouchableOpacity
+            style={styles.dangerBtn}
+            onPress={borrarHistorial}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.dangerBtnText}>🗑️  Borrar todos los pedidos</Text>
           </TouchableOpacity>
         )}
+
       </ScrollView>
     </View>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
-  container: { flex: 1, backgroundColor: '#f0f2f5', paddingTop: 50, paddingHorizontal: 15 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#333' },
+  root: { flex: 1, backgroundColor: M3.background },
 
-  errorEmoji: { fontSize: 50, marginBottom: 15 },
-  errorText: { fontSize: 16, color: '#555', textAlign: 'center', marginBottom: 20 },
-  retryButton: { backgroundColor: '#007AFF', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 10 },
-  retryText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-
-  section: { marginBottom: 30 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#555', marginLeft: 5 },
-  emptyText: { textAlign: 'center', color: '#999', padding: 10 },
-
-  table: {
-    backgroundColor: 'white', borderRadius: 12, padding: 15,
-    elevation: 3, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 5,
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: M3.background, gap: 10 },
+  loadingText: { fontSize: 15, color: M3.onSurfaceVariant, fontWeight: '500' },
+  errorEmoji: { fontSize: 48, marginBottom: 4 },
+  errorTitle: { fontSize: 20, fontWeight: '800', color: M3.onSurface },
+  errorMsg: { fontSize: 15, color: M3.onSurfaceVariant, textAlign: 'center' },
+  retryBtn: {
+    marginTop: 8,
+    backgroundColor: M3.primary,
+    borderRadius: M3.shapeXXL,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
   },
-  row: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-  },
-  rowName: { fontSize: 16, color: '#333', fontWeight: '500' },
-  rowValue: { fontSize: 16, fontWeight: 'bold', color: '#007AFF' },
+  retryText: { color: M3.onPrimary, fontWeight: '700', fontSize: 15 },
 
-  card: {
-    backgroundColor: 'white', borderRadius: 12, padding: 15, marginBottom: 12,
-    elevation: 3, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 5,
+  // Header
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  user: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  totalPrice: { fontSize: 18, fontWeight: 'bold', color: '#FF3B30' },
-  detailsContainer: { borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 8 },
-  detail: { fontSize: 14, color: '#555', marginVertical: 2 },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: M3.onSurface,
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: M3.onSurfaceVariant,
+    fontWeight: '500',
+    marginTop: 2,
+  },
 
-  dangerButton: {
-    backgroundColor: '#dc3545', padding: 18, borderRadius: 12,
-    alignItems: 'center', marginTop: 10,
+  scroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 48,
   },
-  dangerText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+
+  sectionHeader: { marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: M3.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+
+  emptyCard: {
+    backgroundColor: M3.surface,
+    borderRadius: M3.shapeL,
+    padding: 32,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyEmoji: { fontSize: 36 },
+  emptyText: { fontSize: 15, color: M3.onSurfaceVariant, fontWeight: '500' },
+
+  // Ranking card
+  rankingCard: {
+    backgroundColor: M3.surface,
+    borderRadius: M3.shapeL,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  rankRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: M3.outlineVariant,
+  },
+  rankLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  medalBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  medalEmoji: { fontSize: 18 },
+  rankNumBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: M3.surfaceVariant,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rankNum: { fontSize: 14, fontWeight: '700', color: M3.onSurfaceVariant },
+  rankInfo: { flex: 1, gap: 6 },
+  rankName: { fontSize: 15, fontWeight: '700', color: M3.onSurface },
+  barTrack: {
+    height: 5,
+    backgroundColor: M3.surfaceVariant,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: M3.primary,
+    borderRadius: 3,
+  },
+  rankUdsBadge: {
+    alignItems: 'center',
+    backgroundColor: M3.primaryContainer,
+    borderRadius: M3.shapeM,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minWidth: 52,
+  },
+  rankUds: { fontSize: 16, fontWeight: '800', color: M3.primary },
+  rankUdsLabel: { fontSize: 10, fontWeight: '600', color: M3.onPrimaryContainer, textTransform: 'uppercase', letterSpacing: 0.3 },
+
+  // Cliente card
+  clienteCard: {
+    backgroundColor: M3.surface,
+    borderRadius: M3.shapeL,
+    padding: 18,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  clienteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  clienteAvatarRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  clienteAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: M3.secondaryContainer,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clienteAvatarText: { fontSize: 18, fontWeight: '800', color: M3.onSecondaryContainer },
+  clienteNombre: { fontSize: 17, fontWeight: '700', color: M3.onSurface },
+  gastoBadge: {
+    borderRadius: M3.shapeXXL,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  gastoText: { fontSize: 15, fontWeight: '800' },
+  clienteDivider: { height: 1, backgroundColor: M3.outlineVariant, marginBottom: 12 },
+  consumidoLabel: { fontSize: 11, fontWeight: '600', color: M3.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  consumosList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  consumoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: M3.surfaceVariant,
+    borderRadius: M3.shapeXXL,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  consumoCantidad: { fontSize: 13, fontWeight: '800', color: M3.primary },
+  consumoNombre: { fontSize: 13, fontWeight: '500', color: M3.onSurfaceVariant },
+
+  // Danger button
+  dangerBtn: {
+    marginTop: 24,
+    backgroundColor: M3.errorContainer,
+    borderRadius: M3.shapeXXL,
+    paddingVertical: 18,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: M3.error,
+  },
+  dangerBtnText: {
+    color: M3.error,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
 });
