@@ -231,29 +231,31 @@ export default function CartaScreen() {
       return [...prev, idBebida];
     });
   };
-  // 1. Buscamos las bebidas favoritas en TODA la carta
-  // .flatMap aplana los arrays (como sacar todas las bebidas de sus cajas)
-  // 1. Sacamos las bebidas favoritas de toda la carta
-  const bebidasFavoritas = secciones
-    .flatMap(s => s.data)
-    .filter(bebida => favoritos.includes(bebida.id));
+  // 1. ¿Estamos viendo toda la carta o una categoría específica?
+  const viendoTodas = categoriaSeleccionada === 'Todas';
 
-  // 2. NUEVO: Limpiamos las secciones originales para quitar las favoritas de su sitio viejo
-  const seccionesLimpias = secciones.map(seccion => ({
-    ...seccion,
-    // Nos quedamos SOLO con las bebidas que NO ( ! ) están en la lista de favoritos
-    data: seccion.data.filter(bebida => !favoritos.includes(bebida.id))
-  }));
+  // 2. Extraemos las favoritas SOLO si estamos en "Todas"
+  const bebidasFavoritas = viendoTodas
+    ? secciones.flatMap(s => s.data).filter(bebida => favoritos.includes(bebida.id))
+    : []; // Si estamos filtrando, no creamos la sección VIP
 
-  // 3. Juntamos la categoría VIP (si hay) con las secciones limpias
+  // 3. Limpiamos las originales SOLO si estamos en "Todas"
+  const seccionesLimpias = viendoTodas
+    ? secciones.map(seccion => ({
+      ...seccion,
+      data: seccion.data.filter(bebida => !favoritos.includes(bebida.id))
+    }))
+    : secciones; // Si estamos filtrando, las dejamos intactas
+
+  // 4. Juntamos todo
   const seccionesConFavoritos = bebidasFavoritas.length > 0
     ? [{ title: '⭐ Mis Favoritos', data: bebidasFavoritas }, ...seccionesLimpias]
     : seccionesLimpias;
 
-  // 4. Tus filtros de botones y buscador (se quedan exactamente igual)
+  // 5. Aplicamos tus filtros (Botones y Buscador)
   const seccionesFiltradas = seccionesConFavoritos
     .filter(seccion =>
-      categoriaSeleccionada === 'Todas' || seccion.title === categoriaSeleccionada
+      viendoTodas || seccion.title === categoriaSeleccionada
     )
     .map(seccion => {
       const coincideCategoria = seccion.title.toLowerCase().includes(busqueda.toLowerCase());
@@ -262,7 +264,6 @@ export default function CartaScreen() {
       );
       return { ...seccion, data };
     })
-    // Limpieza final de categorías vacías
     .filter(s => s.data.length > 0);
 
 
