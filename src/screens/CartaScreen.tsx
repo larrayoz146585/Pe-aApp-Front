@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Animated,
   Pressable,
+  ScrollView,
   SectionList,
   StatusBar,
   StyleSheet,
@@ -88,19 +89,33 @@ function ScalePress({ onPress, style, children, disabled }: {
 }
 
 // ─── BebidaCard ───────────────────────────────────────────────────────────────
-function BebidaCard({ item, cantidad, onAdd, onRemove }: {
+function BebidaCard({ item, cantidad, onAdd, onRemove, isFavorito, onToggleFavorito }: {
   item: Bebida;
   cantidad: number;
   onAdd: () => void;
   onRemove: () => void;
+  isFavorito: boolean;
+  onToggleFavorito: () => void;
 }) {
   const inCart = cantidad > 0;
 
   return (
     <View style={[styles.card, inCart && styles.cardActive]}>
-      {/* Info */}
+
+      {/* ── Info ── */}
       <View style={styles.cardInfo}>
-        <Text style={styles.cardNombre}>{item.nombre}</Text>
+
+        {/* NUEVO: Metemos la estrella y el nombre en una fila (row) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={onToggleFavorito} activeOpacity={0.7}>
+            <Text style={{ fontSize: 22 }}>
+              {isFavorito ? '⭐' : '☆'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.cardNombre}>{item.nombre}</Text>
+        </View>
+        {/* FIN NUEVO */}
+
         <View style={[styles.priceBadge, inCart && styles.priceBadgeActive]}>
           <Text style={[styles.cardPrecio, inCart && styles.cardPrecioActive]}>
             {parseFloat(String(item.precio)).toFixed(2)} €
@@ -108,7 +123,7 @@ function BebidaCard({ item, cantidad, onAdd, onRemove }: {
         </View>
       </View>
 
-      {/* Controles */}
+      {/* ── Controles (ESTO SE QUEDA IGUAL) ── */}
       <View style={styles.controles}>
         {inCart && (
           <>
@@ -137,6 +152,10 @@ export default function CartaScreen() {
   const [enviando, setEnviando] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('Todas');
+  const [favoritos, setFavoritos] = useState<number[]>([]);
+  const nombresCategorias = secciones.map(s => s.title);
+  const categoriasDisponibles = ['Todas', ...nombresCategorias];
 
   // Animación del footer
   const footerY = useRef(new Animated.Value(120)).current;
@@ -204,8 +223,38 @@ export default function CartaScreen() {
       setEnviando(false);
     }
   };
+  const toggleFavorito = (idBebida: number) => {
+    setFavoritos(prev => {
+      if (prev.includes(idBebida)) {
+        return prev.filter(id => id !== idBebida);
+      }
+      return [...prev, idBebida];
+    });
+  };
+  // 1. Buscamos las bebidas favoritas en TODA la carta
+  // .flatMap aplana los arrays (como sacar todas las bebidas de sus cajas)
+  // 1. Sacamos las bebidas favoritas de toda la carta
+  const bebidasFavoritas = secciones
+    .flatMap(s => s.data)
+    .filter(bebida => favoritos.includes(bebida.id));
 
-  const seccionesFiltradas = secciones
+  // 2. NUEVO: Limpiamos las secciones originales para quitar las favoritas de su sitio viejo
+  const seccionesLimpias = secciones.map(seccion => ({
+    ...seccion,
+    // Nos quedamos SOLO con las bebidas que NO ( ! ) están en la lista de favoritos
+    data: seccion.data.filter(bebida => !favoritos.includes(bebida.id))
+  }));
+
+  // 3. Juntamos la categoría VIP (si hay) con las secciones limpias
+  const seccionesConFavoritos = bebidasFavoritas.length > 0
+    ? [{ title: '⭐ Mis Favoritos', data: bebidasFavoritas }, ...seccionesLimpias]
+    : seccionesLimpias;
+
+  // 4. Tus filtros de botones y buscador (se quedan exactamente igual)
+  const seccionesFiltradas = seccionesConFavoritos
+    .filter(seccion =>
+      categoriaSeleccionada === 'Todas' || seccion.title === categoriaSeleccionada
+    )
     .map(seccion => {
       const coincideCategoria = seccion.title.toLowerCase().includes(busqueda.toLowerCase());
       const data = seccion.data.filter(b =>
@@ -213,7 +262,9 @@ export default function CartaScreen() {
       );
       return { ...seccion, data };
     })
+    // Limpieza final de categorías vacías
     .filter(s => s.data.length > 0);
+
 
   if (loading) return (
     <View style={styles.center}>
@@ -257,27 +308,54 @@ export default function CartaScreen() {
           </TouchableOpacity>
         )}
       </View>
+      {/* ── Filtros de Categoría (Píldoras) ── */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 15 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+          {categoriasDisponibles.map((cat, index) => {
+            const isSelected = categoriaSeleccionada === cat;
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => setCategoriaSeleccionada(cat)}
+                style={{
+                  backgroundColor: isSelected ? M3.primary : M3.surfaceVariant,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: M3.shapeXXL,
+                }}
+              >
+                <Text style={{
+                  color: isSelected ? M3.onPrimary : M3.onSurfaceVariant,
+                  fontWeight: isSelected ? 'bold' : '600'
+                }}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* ── Lista ── */}
       <SectionList
         sections={seccionesFiltradas}
-        keyExtractor={item => item.id.toString()}
+        // Le sumamos el index para que no choque si la bebida está repetida en favoritos
+        keyExtractor={(item, index) => item.id.toString() + '-' + index}
         contentContainerStyle={styles.listContent}
-        stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeaderText}>{title}</Text>
-            <View style={styles.sectionHeaderLine} />
-          </View>
-        )}
+
+        // ... resto de tu SectionList ...
+
         renderItem={({ item }) => {
           const enCarrito = carrito.find(c => c.bebida.id === item.id);
+          const esFav = favoritos.includes(item.id); // Comprobamos si es favorita
           return (
             <BebidaCard
               item={item}
               cantidad={enCarrito?.cantidad ?? 0}
               onAdd={() => agregarBebida(item)}
               onRemove={() => quitarBebida(item)}
+              isFavorito={esFav} // Se lo pasamos a la tarjeta
+              onToggleFavorito={() => toggleFavorito(item.id)} // Le pasamos la acción
             />
           );
         }}
