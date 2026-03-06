@@ -197,6 +197,14 @@ export default function HomeScreen() {
                 <Text style={[styles.sheetCardText, { color: M3.onTertiaryContainer }]}>Gestionar Bebidas</Text>
               </PressCard>
 
+              <PressCard
+                style={[styles.sheetCard, { backgroundColor: M3.primaryContainer }]}
+                onPress={() => { setAdminMenuVisible(false); router.push('/logs'); }}
+              >
+                <Text style={styles.sheetCardIcon}>👁️</Text>
+                <Text style={[styles.sheetCardText, { color: M3.onPrimaryContainer }]}>Registro de Actividad</Text>
+              </PressCard>
+
               <TouchableOpacity style={styles.sheetCloseRow} onPress={() => setAdminMenuVisible(false)} activeOpacity={0.7}>
                 <Text style={styles.sheetCloseText}>Cerrar</Text>
               </TouchableOpacity>
